@@ -1,6 +1,6 @@
 var CBrowser = function(reqid, target_div, init_params) {
-    var cmd_host = undefined;
-    var vnc_host = undefined;
+    var cmd_port = undefined;
+    var vnc_port = undefined;
 
     var connected = false;
     var ever_connected = false;
@@ -166,6 +166,11 @@ var CBrowser = function(reqid, target_div, init_params) {
                 return;
             }
 
+            if (jqxhr.status == 404) {
+                msgdiv().text("No Such Browser");
+                return;
+            }
+
             if (init_params.on_event) {
                 init_params.on_event("expire");
             } else {
@@ -180,9 +185,9 @@ var CBrowser = function(reqid, target_div, init_params) {
     function handle_browser_response(data) {
         qid = data.id;
 
-        if (data.cmd_host && data.vnc_host) {
-            cmd_host = data.cmd_host;
-            vnc_host = data.vnc_host;
+        if (data.cmd_port && data.vnc_port) {
+            cmd_port = data.cmd_port;
+            vnc_port = data.vnc_port;
 
             end_time = parseInt(Date.now() / 1000) + data.ttl;
 
@@ -216,6 +221,7 @@ var CBrowser = function(reqid, target_div, init_params) {
     function try_init_vnc() {
         if (do_vnc()) {
             // success!
+            //clientResize();
             return;
         }
 
@@ -288,9 +294,9 @@ var CBrowser = function(reqid, target_div, init_params) {
     }
 
     function FBUComplete(rfb, fbu) {
-        if (req_params['width'] < min_width || req_params['height'] < min_height) {
+        //if (req_params['width'] < min_width || req_params['height'] < min_height) {
             clientResize();
-        }
+        //}
 
         clientPosition();
         rfb.set_onFBUComplete(function() { });
@@ -328,9 +334,8 @@ var CBrowser = function(reqid, target_div, init_params) {
             return false; // don't continue trying to connect
         }
 
-        var hostport = vnc_host.split(":");
-        var host = hostport[0];
-        var port = hostport[1];
+        var host = window.location.hostname;
+        var port = vnc_port;
         var password = vnc_pass;
         var path = "websockify";
 
@@ -338,8 +343,6 @@ var CBrowser = function(reqid, target_div, init_params) {
         // 'proxy_ws' specifies the proxy path, port is appended
         if (init_params.proxy_ws) {
             path = init_params.proxy_ws + port;
-            host = window.location.hostname;
-
             port = window.location.port;
             if (!port) {
                 port = (window.location.protocol == "https:" ? 443 : 80);
@@ -459,19 +462,20 @@ var CBrowser = function(reqid, target_div, init_params) {
 
         ws_url = (window.location.protocol == "https:" ? "wss:" : "ws:");
 
+        var audio_port = browser_info.cmd_port;
+
         if (init_params.proxy_ws) {
-            var audio_port = browser_info.cmd_host.split(":")[1];
             ws_url += window.location.host + "/" + init_params.proxy_ws + audio_port;
             ws_url += "&count=" + audioCount++;
         } else {
-            ws_url += browser_info.cmd_host + "/audio_ws";
+            ws_url += window.location.hostname + ":" + audio_port + "/audio_ws";
         }
 
         return ws_url;
     }
 
     function get_http_url(browser_info) {
-        var audio_port = browser_info.cmd_host.split(":")[1];
+        var audio_port = browser_info.cmd_port;
         var http_url = window.location.origin + "/_audio.webm?port=" + audio_port;
         http_url += "&count=" + audioCount++;
         return http_url;
