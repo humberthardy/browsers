@@ -146,6 +146,16 @@ class Main(object):
             response.headers['Cache-Control'] = 'no-cache, no-store, max-age=0, must-revalidate'
             return resp
 
+        @route('/remove_browser')
+        def remove_browser():
+            reqid = request.query.get('reqid', '')
+
+            resp = self.dc.remove_browser(reqid)
+            if resp:
+                return {'success': 'deleted'}
+            else:
+                return {'error': 'not_deleted'}
+
         @route('/static/<filepath:path>')
         def server_static(filepath):
             return static_file(filepath, root='./static/')

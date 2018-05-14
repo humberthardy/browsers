@@ -554,6 +554,23 @@ class DockerController(object):
         info['ttl'] = self.duration
         return info
 
+    def remove_browser(self, reqid):
+        short_id = self.redis.hget('req:' + reqid, 'id')
+
+        try:
+            container = self.cli.containers.get(short_id)
+        except Exception as e:
+            print('Container Not Found: ' + short_id)
+            return False
+
+        try:
+            container.remove(force=True)
+        except Exception as e:
+            print('Remove error: ' + str(e))
+            return False
+
+        return True
+
     def clone_browser(self, reqid, id_, name):
         short_id = self.redis.hget('req:' + reqid, 'id')
 
