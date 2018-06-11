@@ -5,6 +5,11 @@ CURR_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 set -e
 
+if  [ -d "$CURR_DIR/base-browser" ]; then
+    cd $CURR_DIR/base-browser
+    $CURR_DIR/build-me.sh
+fi
+
 BROWSER_DIRS=$(find $CURR_DIR -type f -name Dockerfile)
 
 echo "Building $BROWSER_DIRS"
