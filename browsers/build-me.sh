@@ -8,7 +8,7 @@ opt=""
 
 if [ -a $PWD/docker-compose.yml ]; then
   docker-compose build
-  exit 0
+  exit $?
 fi
 
 if [ ! -f "$PWD/tags" ]; then
@@ -21,6 +21,6 @@ if [ -a $PWD/tags ]; then
     done <$PWD/tags
 fi
 
-docker build $opt .
 echo "Built $opt"
+docker build $opt .
 
