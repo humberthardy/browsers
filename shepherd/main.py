@@ -127,9 +127,11 @@ class Main(object):
             width = request.query.get('width')
             height = request.query.get('height')
 
+            sound = request.query.get("sound")
+
             host = request.urlparts.netloc.split(':')[0]
 
-            resp = self.dc.init_new_browser(reqid, host, width, height)
+            resp = self.dc.init_new_browser(reqid, host, width, height, sound)
 
             if not resp:
                 response.status = 404
