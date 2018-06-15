@@ -42,7 +42,7 @@ browser_config:
     #cpu_auto_adjust: 5.5
 
     # ==============
-    api_version: '1.24'
+    api_version: '1.25'
 
     # container ports to map
     ports:

@@ -1,4 +1,4 @@
-from docker.client import Client
+from docker import APIClient
 from docker.utils import kwargs_from_env
 
 import os
@@ -57,7 +57,7 @@ class DockerController(object):
         self.label_prefix = config['label_prefix']
 
         self.network_name = config['network_name']
-        self.volume_source = config['browser_volumes']
+
         self.shm_size = config['shm_size']
 
         self.default_browser = config['default_browser']
@@ -74,12 +74,12 @@ class DockerController(object):
 
     def _init_cli(self):
         if os.path.exists('/var/run/docker.sock'):
-            self.cli = Client(base_url='unix://var/run/docker.sock',
+            self.cli = APIClient(base_url='unix://var/run/docker.sock',
                               version=self.api_version)
         else:
             kwargs = kwargs_from_env(assert_hostname=False)
             kwargs['version'] = self.api_version
-            self.cli = Client(**kwargs)
+            self.cli = APIClient(**kwargs)
 
     def _init_redis(self, config):
         redis_url = os.environ['REDIS_BROWSER_URL']
@@ -253,7 +253,7 @@ class DockerController(object):
         short_id = None
 
         try:
-            host_config = self.create_host_config()
+            host_config = self.create_host_config(browser)
 
             container = self.cli.create_container(image=image,
                                                   ports=list(self.ports.values()),
@@ -291,21 +291,30 @@ class DockerController(object):
 
             return {}
 
-    def create_host_config(self):
-        if self.volume_source:
-            volumes_from = [self.volume_source]
-        else:
-            volumes_from = None
+    def create_host_config(self, labels=None):
 
-        host_config = self.cli.create_host_config(
-                                 port_bindings=self.port_bindings,
-                                 volumes_from=volumes_from,
-                                 network_mode=self.network_name,
-                                 shm_size=self.shm_size,
-                                 cap_add=['ALL'],
-                                 security_opt=['apparmor=unconfined'],
-                                )
+        host_config_args = { "port_bindings": self.port_bindings,
+                             "network_mode":self.network_name,
+                             "shm_size":self.shm_size,
+                             "cap_add":['ALL'],
+                             "security_opt":['apparmor=unconfined']}
+
+        if labels is not None:
+            if self.is_nvidia_container(labels):
+                host_config_args["binds"] = {
+                          '/tmp/.X11-unix/X0':{
+                              'bind': '/tmp/.X11-unix/X0',
+                              'ro': False
+                          },
+                      }
+                host_config_args["runtime"] = "nvidia"
+
+
+        host_config = self.cli.create_host_config( **host_config_args )
         return host_config
+
+    def is_nvidia_container(self, labels):
+        return "caps.opengl-nvidia" in labels and labels["caps.opengl-nvidia"] == "1"
 
     def remove_container(self, short_id):
         print('REMOVING: ' + short_id)
