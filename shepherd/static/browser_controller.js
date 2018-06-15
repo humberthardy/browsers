@@ -205,23 +205,22 @@ var CBrowser = function(reqid, target_div, init_params) {
 
             if (init_params.audio) {
                 // setup_browser can be called many times (specially when noVnc thrown an exception), we deinitialize sound before reinit
-                if (window.hasOwnProperty("audioPlugin") && window.audioPlugin.hasOwnProperty("stop")) {
-                    window.audioPlugin.stop();
-                    window.audioPlugin = undefined;
+                if (window.hasOwnProperty("audioPlugin")) {
+                    try {
+                        window.audioPlugin.stop();
+                        window.audioPlugin = undefined;
+                    } catch (err){}
+
                 }
                 if (data.audio == "opus") {
                     $.loadScript('audio_opus.js', function(){
-                        if (!window.hasOwnProperty("audioPlugin")) {
-                            window.audioPlugin = AudioOpus(data, init_params)
-                        }
+                        window.audioPlugin = AudioOpus(data, init_params)
                     })
                 }
                 if (data.audio == "webrtc") {
                     $.loadScript('audio_webrtc.js', function(){
                         $.loadScript('https://webrtc.github.io/adapter/adapter-latest.js', function(){
-                            if (!window.hasOwnProperty("audioPlugin")) {
-                                window.audioPlugin = AudioWebRTC(reqid, init_params);
-                            }
+                            window.audioPlugin = AudioWebRTC(reqid, init_params);
                         })
                     })
                 }

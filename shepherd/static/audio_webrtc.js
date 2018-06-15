@@ -115,8 +115,10 @@ var AudioWebRTC = function(reqid, init_params) {
         resetAudio();
         disconnectWebsocket();
 
-        // Reset after a second
-        window.setTimeout(websocketServerConnect, 1000);
+        if (event.code != 1002) {
+            // Reset after a second
+            window.setTimeout(websocketServerConnect, 1000);
+        }
     }
 
     function resetAudio() {
