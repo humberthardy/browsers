@@ -13,6 +13,9 @@ from redis.exceptions import BusyLoadingError
 
 
 #=============================================================================
+from webrtcredisdb import WebRTCTurnCredentials
+
+
 class DockerController(object):
     def _load_config(self):
         config = os.environ.get('BROWSER_CONFIG', './config.yaml')
@@ -549,11 +552,22 @@ class DockerController(object):
         self._copy_env(env, 'SCREEN_WIDTH', width)
         self._copy_env(env, 'SCREEN_HEIGHT', height)
         self._copy_env(env, 'IDLE_TIMEOUT')
-        self._copy_env(env, 'SIGNALLING_SERVER')
+        self._copy_env(env, 'WEBRTC_SIGNALING_SERVER')
+        self._copy_env(env, 'WEBRTC_STUN_SERVER')
 
         info = self.timed_new_container(browser, env, host, reqid, audio)
         info['queue'] = 0
         info['vnc_pass'] = vnc_pass
+
+
+        if audio == "webrtc":
+            if os.environ.get("WEBRTC_TURN_SERVER"):
+                #info['webrtc_turn_user'] = reqid
+                #info['webrtc_turn_password'] = vnc_pass
+                info['webrtc_turn_server'] = os.environ.get('WEBRTC_TURN_SERVER').replace("turn://", "turn:")
+                info['webrtc_turn_credentials'] = WebRTCTurnCredentials.get_credentials(reqid, 3600)
+            if os.environ.get("WEBRTC_STUN_SERVER"):
+                info['webrtc_stun_server'] = os.environ.get("WEBRTC_STUN_SERVER")
 
         new_key = 'ip:' + info['ip']
 

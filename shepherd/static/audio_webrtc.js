@@ -1,22 +1,11 @@
-var AudioWebRTC = function(reqid, init_params) {
+var AudioWebRTC = function(reqid, data) {
 
     var audio = null;
     var connect_attempts = 0;
     var peer_connection;
     var ws_conn;
 
-    init_params = init_params || {};
-
-    var rtc_configuration = {iceServers: [{urls: "stun:stun.services.mozilla.com"},
-            {urls: "stun:stun.l.google.com:19302"},
-
-        ],
-        iceTransports: 'all',
-        bundlePolicy: 'balanced',
-        rtcpMuxPolicy: 'require',
-        iceCandidatePoolSize: 0
-    };
-
+    data = data || {};
 
     function start() {
         audio = new Audio();
@@ -25,7 +14,31 @@ var AudioWebRTC = function(reqid, init_params) {
         websocketServerConnect()
     }
 
-    function get_signalling_server() {
+    function getRtcPeerConfiguration() {
+        var iceServers = []
+        if (data["webrtc_turn_server"]) {
+            var server = data["webrtc_turn_server"];
+            var rx = /turn:\/\/(.*):(.*)@(.*)/g;
+
+            var credentials = data["webrtc_turn_credentials"]
+
+            iceServers.push({
+                "urls": server,
+                "credential": credentials["password"],
+                "username": credentials["username"]
+                        });
+        }
+        if (data["webrtc_stun_server"]) {
+            var server = data["webrtc_stun_server"]; //.replace("stun://", "stun:");
+            iceServers.push({"urls": server});
+        }
+        console.log("iceservers = %O", iceServers);
+
+
+        return {"iceServers": iceServers};
+    }
+
+    function getSignallingServer() {
         ws_url = (window.location.protocol == "https:" ? "wss://" : "ws://");
         ws_url += window.location.hostname + ":8090"
         return ws_url
@@ -115,20 +128,34 @@ var AudioWebRTC = function(reqid, init_params) {
         resetAudio();
         disconnectWebsocket();
 
-        if (event.code != 1002) {
+        if (event.code != 1002 ) {
             // Reset after a second
-            window.setTimeout(websocketServerConnect, 1000);
+            window.setTimeout(websocketServerConnect, 2000);
+        } else {
+            if (connect_attempts < 5 ) {
+                // Retrieve to connect up to 5 times (peer-id might be in conflict if init_browser is called again)
+                window.setTimeout(websocketServerConnect, 2000);
+            }
         }
     }
 
     function resetAudio() {
         // Reset the audio element and stop showing the last received frame
-        audio.pause();
-        audio.src = "";
+        try {
+            audio.pause();
+        } catch (e) {
+        }
+
     }
 
     function disconnectWebsocket() {
+        if (ws_conn) {
+            console.log("disconnect websocket");
+            ws_conn.close();
+        }
+
         if (peer_connection) {
+            console.log("disconnect peer");
             peer_connection.close();
             peer_connection = null;
         }
@@ -150,7 +177,7 @@ var AudioWebRTC = function(reqid, init_params) {
 
         // Fetch the peer id to use
         peer_id = getOurId();
-        var ws_url = get_signalling_server();
+        var ws_url = getSignallingServer();
         setStatus("Connecting to server " + ws_url + ", attempt= " + connect_attempts);
         ws_conn = new WebSocket(ws_url);
         /* When connected, immediately register with the server */
@@ -175,7 +202,7 @@ var AudioWebRTC = function(reqid, init_params) {
         console.log('Creating RTCPeerConnection');
 
 
-        peer_connection = new RTCPeerConnection(rtc_configuration);
+        peer_connection = new RTCPeerConnection(getRtcPeerConfiguration());
         peer_connection.ontrack = onRemoteTrackAdded;
 
         /* Send our video/audio to the other peer */
@@ -201,7 +228,9 @@ var AudioWebRTC = function(reqid, init_params) {
     start();
 
     return {
+        "id": reqid,
         "stop": function() {
+            console.log("Closing audio");
             resetAudio();
             disconnectWebsocket();
         }

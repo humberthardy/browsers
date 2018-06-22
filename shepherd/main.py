@@ -126,7 +126,6 @@ class Main(object):
 
             width = request.query.get('width')
             height = request.query.get('height')
-
             sound = request.query.get("sound")
 
             host = request.urlparts.netloc.split(':')[0]
