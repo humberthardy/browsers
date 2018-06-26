@@ -1,22 +1,17 @@
-[submodule "browsers/base-browser"]
-	path = browsers/base-browser
-	url = git@gitlab.nfb.ca:rnd-webrecorder/base-browser.git
-        branch  = webrtc
-[submodule "browsers/browser-chromium"]
-	path = browsers/browser-chromium
-	url = git@gitlab.nfb.ca:rnd-webrecorder/browser-chromium.git
-[submodule "browsers/chromium-opengl"]
-	path = browsers/chromium-opengl
-	url = git@gitlab.nfb.ca:rnd-webrecorder/chromium-opengl.git
 [submodule "browsers/browser-firefox"]
 	path = browsers/browser-firefox
 	url = https://github.com/webrecorder/browser-firefox
 [submodule "browsers/browser-chrome"]
 	path = browsers/browser-chrome
 	url = https://github.com/webrecorder/browser-chrome
-[submodule "browsers/browser-chrome-m"]
-	path = browsers/browser-chrome-m
-	url = https://github.com/webrecorder/browser-chrome-m
-[submodule "browsers/wine-browsers"]
-	path = browsers/wine-browsers
-	url = https://github.com/webrecorder/wine-browsers
+[submodule "browsers/browser-chromium"]
+	path = browsers/browser-chromium
+	url = git@gitlab.nfb.ca:rnd/webrecorder/browser-chromium.git
+[submodule "browsers/base-browser"]
+	path = browsers/base-browser
+	url = git@gitlab.nfb.ca:rnd/webrecorder/base-browser.git
+	branch = webrtc
+[submodule "browsers/browser-chromium-opengl"]
+	path = browsers/browser-chromium-opengl
+	url = git@gitlab.nfb.ca:rnd/webrecorder/browser-chromium-opengl.git
+	branch = webrtc
