@@ -220,7 +220,9 @@ var CBrowser = function(reqid, target_div, init_params) {
                 if (data.audio == "webrtc") {
                     $.loadScript('audio_webrtc.js', function(){
                         $.loadScript('https://webrtc.github.io/adapter/adapter-latest.js', function(){
-                            window.audioPlugin = AudioWebRTC(reqid, init_params);
+                            if (!window.hasOwnProperty("audioPlugin")) {
+                                window.audioPlugin = AudioWebRTC(reqid, data);
+                            }
                         })
                     })
                 }
