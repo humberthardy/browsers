@@ -524,7 +524,7 @@ class DockerController(object):
 
         if audio is not None and audio not in os.environ.get("AUDIO_TYPE"):
             print("Audio %s not found in %s".format(audio, os.environ.get("AUDIO_TYPE")))
-            audio = None
+            audio = os.environ.get("AUDIO_TYPE").split("|")[0]
 
         queue_pos = self.am_i_next(reqid)
 
