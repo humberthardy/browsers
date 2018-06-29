@@ -1,6 +1,8 @@
 var AudioOpus = function(browser_info, init_params) {
 
     var audioCount = 0;
+    var min_latency = 0.1; // 100ms
+    var max_latency = 0.5  // 500ms
 
     init_params = init_params || {};
 
@@ -210,6 +212,20 @@ var AudioOpus = function(browser_info, init_params) {
             } catch (e) {
                 this.audioError("Error Adding Buffer: " + e);
             }
+
+
+            // take care about latency
+            try{
+                var latency = this.audio.buffered.end(0) - this.audio.currentTime;
+                if (latency > max_latency) {
+                    this.audio.currentTime = this.audio.buffered.end(0) - min_latency;
+                    console.log("Audio has been seeked by ", (latency - min_latency) * 1000, " ms");
+                }
+
+            } catch(e) {
+
+            }
+
 
             this.updating = false;
         }
