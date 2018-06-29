@@ -2,7 +2,7 @@ var AudioOpus = function(browser_info, init_params) {
 
     var audioCount = 0;
     var min_latency = 0.1; // 100ms
-    var max_latency = 0.5  // 500ms
+    var max_latency = 0.3  // 300ms
 
     init_params = init_params || {};
 
@@ -62,7 +62,12 @@ var AudioOpus = function(browser_info, init_params) {
 
         this.buffSize = 0;
 
+        this.latencyController = null;
+
         this.initAudio = function() {
+
+            this.latencyController = setInterval(this.latencyController.bind(this), 250);
+
             if (this.initing) {
                 console.log("already initing");
                 return;
@@ -118,6 +123,10 @@ var AudioOpus = function(browser_info, init_params) {
         this.close = function() {
             console.log("Closing Audio");
             try {
+                if (this.latencyController) {
+                    clearInterval(this.latencyController);
+                }
+
                 if (this.mediasource) {
                     this.mediasource.removeSourceBuffer(this.buffer);
                     if (this.mediasource.readyState == "open") {
@@ -212,8 +221,10 @@ var AudioOpus = function(browser_info, init_params) {
             } catch (e) {
                 this.audioError("Error Adding Buffer: " + e);
             }
+            this.updating = false;
+        }
 
-
+        this.latencyController = function() {
             // take care about latency
             try{
                 var latency = this.audio.buffered.end(0) - this.audio.currentTime;
@@ -225,9 +236,6 @@ var AudioOpus = function(browser_info, init_params) {
             } catch(e) {
 
             }
-
-
-            this.updating = false;
         }
 
         this.audioError = function(msg, event) {
