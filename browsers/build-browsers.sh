@@ -18,6 +18,10 @@ echo "Building $BROWSER_DIRS"
 
 for dir in $BROWSER_DIRS
 do
+   echo "----------------"
+   echo " Building $dir"
+   echo "----------------"
+
     dir=`dirname $dir`
     if [ -f "$dir/skip" ]; then
        continue
