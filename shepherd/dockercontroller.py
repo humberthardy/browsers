@@ -67,6 +67,8 @@ class DockerController(object):
 
         self._init_cli()
 
+        self._init_runtimes()
+
         while True:
             try:
                 self._init_redis(config)
@@ -83,6 +85,10 @@ class DockerController(object):
             kwargs = kwargs_from_env(assert_hostname=False)
             kwargs['version'] = self.api_version
             self.cli = APIClient(**kwargs)
+
+    def _init_runtimes(self):
+        info = self.cli.info()
+        self.runtimes = info["Runtimes"]
 
     def _init_redis(self, config):
         redis_url = os.environ['REDIS_BROWSER_URL']
@@ -303,7 +309,7 @@ class DockerController(object):
                              "security_opt":['apparmor=unconfined']}
 
         if labels is not None:
-            if self.is_nvidia_container(labels):
+            if self.support_nvidia_acceleration(labels):
                 host_config_args["binds"] = {
                           '/tmp/.X11-unix/X0':{
                               'bind': '/tmp/.X11-unix/X0',
@@ -316,8 +322,13 @@ class DockerController(object):
         host_config = self.cli.create_host_config( **host_config_args )
         return host_config
 
-    def is_nvidia_container(self, labels):
-        return "caps.opengl-nvidia" in labels and labels["caps.opengl-nvidia"] == "1"
+    def support_nvidia_acceleration(self, labels):
+        if "caps.opengl-nvidia" in labels and labels["caps.opengl-nvidia"] == "1":
+            if "nvidia" in self.runtimes:
+                return True
+            else:
+                print("WARNING: browser support NVIDIA OPENGL but the system does not")
+        return False
 
     def remove_container(self, short_id):
         print('REMOVING: ' + short_id)
