@@ -388,7 +388,7 @@ var CBrowser = function(reqid, target_div, init_params) {
             var host = hostport[0];
             var port = hostport[1];
 
-            var ws_url = "ws://127.0.0.1:" +port + '/websockify' ;
+            var ws_url = "ws://" + host + ":" + port + '/websockify' ;
             console.log("connecting to " + ws_url + " with password " + vnc_pass);
             console.log("target" + target);
             rfb = new RFB(target, ws_url, {'credentials': {'password': vnc_pass}});
