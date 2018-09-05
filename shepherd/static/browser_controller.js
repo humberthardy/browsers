@@ -35,29 +35,57 @@ var CBrowser = function(reqid, target_div, init_params) {
                 init_params.static_prefix = "/static/";
             }
 
+
             window.INCLUDE_URI = init_params.static_prefix + "novnc/";
+            console.log("~~~~ before loading ~~~~");
+            $.getScript("https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js", function(){
+                console.log("requireJS loaded");
+                requirejs([window.INCLUDE_URI + "rfb.js"], function(rfb){
+                    window.RFB = rfb.default;
+                    console.log("RFB LOADED");
+                    console.log(rfb);
+                    // Countdown updater
+                    if (init_params.on_countdown) {
+                        setInterval(update_countdown, 1000);
+                    }
 
-            $.getScript(window.INCLUDE_URI + "core/util.js", function() {
-                $.getScript(window.INCLUDE_URI + "app/webutil.js", function() {
+                    init_html(target_div);
 
-                    WebUtil.load_scripts(
-                        {'core': ["base64.js", "websock.js", "des.js", "input/keysymdef.js",
-                                  "input/xtscancodes.js", "input/util.js", "input/devices.js",
-                                  "display.js", "inflator.js", "rfb.js", "input/keysym.js"]});
+                    setup_browser();
+
+                    init_clipboard();
                 });
+
             });
+            /*
+            $.getScript(window.INCLUDE_URI + "rfb.js", function() {
+                console.log("~~~~~~ rfb loaded ~~~~~");
+                // Countdown updater
+                if (init_params.on_countdown) {
+                    setInterval(update_countdown, 1000);
+                }
+
+                init_html(target_div);
+
+                setup_browser();
+
+                init_clipboard();
+            }). fail(function(a, b, c) { console.log("Errror!!");
+
+            console.log(c);});
+            */
+            // $.getScript(window.INCLUDE_URI + "core/util.js", function() {
+            //     $.getScript(window.INCLUDE_URI + "app/webutil.js", function() {
+            //
+            //         WebUtil.load_scripts(
+            //             {'core': ["base64.js", "websock.js", "des.js", "input/keysymdef.js",
+            //                       "input/xtscancodes.js", "input/util.js", "input/devices.js",
+            //                       "display.js", "inflator.js", "rfb.js", "input/keysym.js"]});
+            //     });
+            // });
         }
 
-        // Countdown updater
-        if (init_params.on_countdown) {
-            setInterval(update_countdown, 1000);
-        }
 
-        init_html(target_div);
-
-        setup_browser();
-
-        init_clipboard();
     }
 
     function canSupportWebRTC() {
@@ -345,7 +373,33 @@ var CBrowser = function(reqid, target_div, init_params) {
         waiting_for_vnc = true;
 
         try {
-            rfb = new RFB({'target':       canvas()[0],
+            // rfb = new RFB({'target':       canvas()[0],
+            //                'encrypt':      (window.location.protocol === "https:"),
+            //                'repeaterID':   '',
+            //                'true_color':   true,
+            //                'local_cursor': true,
+            //                'shared':       false,
+            //                'view_only':    false,
+            //                'onUpdateState':  updateState,
+            //                'onClipboard':    onVNCCopyCut,
+            //                'onFBUComplete':  FBUComplete});
+            var target =  document.getElementById("noVNC_screen");
+            var hostport = vnc_host.split(":");
+            var host = hostport[0];
+            var port = hostport[1];
+
+            var ws_url = "ws://127.0.0.1:" +port + '/websockify' ;
+            console.log("connecting to " + ws_url + " with password " + vnc_pass);
+            console.log("target" + target);
+            rfb = new RFB(target, ws_url, {'credentials': {'password': vnc_pass}});
+
+            rfb.addEventListener("credentialsrequired", function() {console.log("credentialsrequired")})
+            rfb.addEventListener("connect", function() {console.log("connect")})
+            rfb.addEventListener("disconnect", function() {console.log("disconnect")})
+            rfb.addEventListener("securityfailure", function() {console.log("securityfailure")})
+
+
+            /*rfb = new RFB(target, ws_url,  {'target':       canvas()[0],
                            'encrypt':      (window.location.protocol === "https:"),
                            'repeaterID':   '',
                            'true_color':   true,
@@ -354,7 +408,9 @@ var CBrowser = function(reqid, target_div, init_params) {
                            'view_only':    false,
                            'onUpdateState':  updateState,
                            'onClipboard':    onVNCCopyCut,
+                           'credentials': {'password': vnc_pass},
                            'onFBUComplete':  FBUComplete});
+                           */
         } catch (exc) {
             waiting_for_vnc = false;
             //updateState(null, 'fatal', null, 'Unable to create RFB client -- ' + exc);
@@ -381,7 +437,7 @@ var CBrowser = function(reqid, target_div, init_params) {
         }
 
         try {
-            rfb.connect(host, port, password, path);
+           // rfb.connect(host, port, password, path);
         } catch (exc) {
             waiting_for_vnc = false;
             console.warn(exc);
