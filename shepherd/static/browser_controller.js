@@ -10,6 +10,7 @@ var CBrowser = function(reqid, target_div, init_params) {
     var min_width = 800;
     var min_height = 600;
 
+    var RFB;
     var rfb;
     var resizeTimeout;
     var vnc_pass = "secret";
@@ -41,9 +42,8 @@ var CBrowser = function(reqid, target_div, init_params) {
             $.getScript("https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js", function(){
                 console.log("requireJS loaded");
                 requirejs([window.INCLUDE_URI + "rfb.js"], function(rfb){
-                    window.RFB = rfb.default;
-                    console.log("RFB LOADED");
-                    console.log(rfb);
+                    RFB = rfb.default;
+
                     // Countdown updater
                     if (init_params.on_countdown) {
                         setInterval(update_countdown, 1000);
@@ -57,36 +57,9 @@ var CBrowser = function(reqid, target_div, init_params) {
                 });
 
             });
-            /*
-            $.getScript(window.INCLUDE_URI + "rfb.js", function() {
-                console.log("~~~~~~ rfb loaded ~~~~~");
-                // Countdown updater
-                if (init_params.on_countdown) {
-                    setInterval(update_countdown, 1000);
-                }
-
-                init_html(target_div);
-
-                setup_browser();
-
-                init_clipboard();
-            }). fail(function(a, b, c) { console.log("Errror!!");
-
-            console.log(c);});
-            */
-            // $.getScript(window.INCLUDE_URI + "core/util.js", function() {
-            //     $.getScript(window.INCLUDE_URI + "app/webutil.js", function() {
-            //
-            //         WebUtil.load_scripts(
-            //             {'core': ["base64.js", "websock.js", "des.js", "input/keysymdef.js",
-            //                       "input/xtscancodes.js", "input/util.js", "input/devices.js",
-            //                       "display.js", "inflator.js", "rfb.js", "input/keysym.js"]});
-            //     });
-            // });
         }
-
-
     }
+
 
     function canSupportWebRTC() {
         var isWebRTCSupported = window.RTCPeerConnection;
@@ -97,6 +70,7 @@ var CBrowser = function(reqid, target_div, init_params) {
         return typeof(mediaSource) != undefined;
     }
 
+
     function init_clipboard() {
         if (!init_params.clipboard) {
             return;
@@ -106,7 +80,7 @@ var CBrowser = function(reqid, target_div, init_params) {
 
         $(init_params.clipboard).on('change keyup paste', function() {
             var text = $(init_params.clipboard).val();
-            
+
             if (connected && rfb && lastText != text) {
                 rfb.clipboardPasteFrom(text);
                 lastText = text;
@@ -115,29 +89,35 @@ var CBrowser = function(reqid, target_div, init_params) {
     }
 
     function canvas() {
-        return $("canvas", target_div);
+        return $("div.screen", target_div);
     }
 
     function msgdiv() {
         return $("#browserMsg", target_div);
     }
 
-    function screen() {
-        return $("#noVNC_screen", target_div);
-    }
+    // function screen() {
+    //     return $("#noVNC_screen", target_div);
+    // }
 
     function init_html() {
+        $(target_div).css('height', '100%');
         $(target_div).append($("<div>", {"id": "browserMsg", "class": "loading"}).text(""));
-        $(target_div).append($("<div>", {"id": "noVNC_screen"}).append($("<canvas>", {"tabindex": "0"})));
+        $(target_div).append($("<div>", {"id": "noVNC_screen", "style": "position: absolute; height:" + "100%; width:100%"}).append($("<div class=\"screen\"/>")));
 
-        canvas().hide();
 
+        canvas().css('height','100%');
+
+        //canvas().hide();
+
+        /*
         screen().blur(lose_focus);
         screen().mouseleave(lose_focus);
 
         screen().mouseenter(grab_focus);
 
         canvas().on('click', grab_focus);
+        */
     }
 
     function setup_browser() {
@@ -276,29 +256,28 @@ var CBrowser = function(reqid, target_div, init_params) {
     }
 
     function try_init_vnc() {
-        if (do_vnc()) {
-            // success!
-            return;
-        }
+        do_vnc()
+            .fail(function() {
+                fail_count++;
 
-        fail_count++;
+                if (fail_count <= num_vnc_retries) {
+                    msgdiv().text("Retrying to connect to remote browser...");
+                    setTimeout(init_browser, 500);
+                } else {
+                    if (init_params.on_event) {
+                        init_params.on_event("fail");
+                    } else {
+                        msgdiv().text("Failed to connect to remote browser... Please try again later");
+                    }
+                }
+            });
 
-        if (fail_count <= num_vnc_retries) {
-            msgdiv().text("Retrying to connect to remote browser...");
-            setTimeout(init_browser, 500);
-        } else {
-            if (init_params.on_event) {
-                init_params.on_event("fail");
-            } else {
-                msgdiv().text("Failed to connect to remote browser... Please try again later");
-            }
-        }
     }
 
     function lose_focus() {
         if (!rfb) return;
-        rfb.get_keyboard().set_focused(false);
-        rfb.get_mouse().set_focused(false);
+        rfb._keyboard.ungrab();
+        rfb._mouse.ungrab();
     }
 
     function grab_focus() {
@@ -314,19 +293,24 @@ var CBrowser = function(reqid, target_div, init_params) {
             canvas().focus();
         }
 
-        rfb.get_keyboard().set_focused(true);
-        rfb.get_mouse().set_focused(true);
+        rfb._keyboard.grab();
+        rfb._mouse.grab();
     }
 
     function clientPosition() {
         var hh = $('header').height();
-        var c = canvas();
-        var ch = c.height();
-        var cw = c.width();
+        var container = canvas();
+        var inner_canvas = container.find("canvas");
+
+        var ch = inner_canvas.height();
+        var cw = inner_canvas.width();
         if (!init_params.fill_window) {
-            c.css({
-                marginLeft: (window.innerWidth - cw)/2,
-                marginTop: (window.innerHeight - (hh + ch + 25))/2
+            var marginLeft =  (window.innerWidth - cw)/2;
+            var marginTop = (window.innerHeight - (hh + ch + 25))/2;
+            console.log("new MarginLeft " + marginLeft + ", marginTop = "+ marginTop);
+            container.css({
+                marginLeft: marginLeft,
+                marginTop: marginTop
             });
         }
     }
@@ -344,18 +328,10 @@ var CBrowser = function(reqid, target_div, init_params) {
         }
 
         if (rfb) {
+            console.log("Resizing to " + w + "x" + h);
             var s = rfb._display.autoscale(w, h);
-            rfb.get_mouse().set_scale(s);
+            //rfb._mouse().set_scale(s);
         }
-    }
-
-    function FBUComplete(rfb, fbu) {
-        if (req_params['width'] < min_width || req_params['height'] < min_height) {
-            clientResize();
-        }
-
-        clientPosition();
-        rfb.set_onFBUComplete(function() { });
     }
 
     function onVNCCopyCut(rfb, text)
@@ -365,64 +341,27 @@ var CBrowser = function(reqid, target_div, init_params) {
         }
     }
 
+
+
+
     function do_vnc() {
+
         if (waiting_for_vnc) {
             return;
         }
 
         waiting_for_vnc = true;
 
-        try {
-            // rfb = new RFB({'target':       canvas()[0],
-            //                'encrypt':      (window.location.protocol === "https:"),
-            //                'repeaterID':   '',
-            //                'true_color':   true,
-            //                'local_cursor': true,
-            //                'shared':       false,
-            //                'view_only':    false,
-            //                'onUpdateState':  updateState,
-            //                'onClipboard':    onVNCCopyCut,
-            //                'onFBUComplete':  FBUComplete});
-            var target =  document.getElementById("noVNC_screen");
-            var hostport = vnc_host.split(":");
-            var host = hostport[0];
-            var port = hostport[1];
-
-            var ws_url = "ws://" + host + ":" + port + '/websockify' ;
-            console.log("connecting to " + ws_url + " with password " + vnc_pass);
-            console.log("target" + target);
-            rfb = new RFB(target, ws_url, {'credentials': {'password': vnc_pass}});
-
-            rfb.addEventListener("credentialsrequired", function() {console.log("credentialsrequired")})
-            rfb.addEventListener("connect", function() {console.log("connect")})
-            rfb.addEventListener("disconnect", function() {console.log("disconnect")})
-            rfb.addEventListener("securityfailure", function() {console.log("securityfailure")})
-
-
-            /*rfb = new RFB(target, ws_url,  {'target':       canvas()[0],
-                           'encrypt':      (window.location.protocol === "https:"),
-                           'repeaterID':   '',
-                           'true_color':   true,
-                           'local_cursor': true,
-                           'shared':       false,
-                           'view_only':    false,
-                           'onUpdateState':  updateState,
-                           'onClipboard':    onVNCCopyCut,
-                           'credentials': {'password': vnc_pass},
-                           'onFBUComplete':  FBUComplete});
-                           */
-        } catch (exc) {
-            waiting_for_vnc = false;
-            //updateState(null, 'fatal', null, 'Unable to create RFB client -- ' + exc);
-            console.warn(exc);
-            return false; // don't continue trying to connect
-        }
-
         var hostport = vnc_host.split(":");
         var host = hostport[0];
         var port = hostport[1];
-        var password = vnc_pass;
+
         var path = "websockify";
+        var protocol = "ws";
+
+        if (window.location.protocol === "https:") {
+            protocol = "wss";
+        }
 
         // Proxy WS via the origin host, instead of making direct conn
         // 'proxy_ws' specifies the proxy path, port is appended
@@ -436,34 +375,30 @@ var CBrowser = function(reqid, target_div, init_params) {
             }
         }
 
-        try {
-           // rfb.connect(host, port, password, path);
-        } catch (exc) {
-            waiting_for_vnc = false;
-            console.warn(exc);
-            return false;
+        var deferred = $.Deferred();
+
+        function updateDeferred(state) {
+            if (deferred.state() == "pending") {
+                waiting_for_vnc = false;
+                if (state == "connected") {
+                    deferred.resolve(state);
+                } else {
+                    deferred.reject(state);
+                }
+            }
         }
 
-        waiting_for_vnc = false;
-        return true;
-    }
+        var target = canvas()[0];
+        var webservice_url = protocol + '://' + host + ':' + port + '/' + path;
 
-    function updateState(rfb, state, oldstate, msg) {
-        if (state == "disconnecting") {
-            connected = false;
+        console.log("Connecting to " + webservice_url);
 
-            canvas().hide();
+        rfb = new RFB(target, webservice_url, {'credentials': {'password': vnc_pass}});
 
-            var reinit = !document.hidden;
-
-            if (init_params.on_event) {
-                init_params.on_event("disconnect");
-            }
-
-            if (reinit) {
-                setup_browser();
-            }
-        } else if (state == "connected") {
+        rfb.addEventListener("credentialsrequired", function () {
+            updateDeferred("credentialsrequired");
+        });
+        rfb.addEventListener("connect", function () {
             canvas().show();
             if (init_params.fill_window) {
                 canvas().focus();
@@ -478,9 +413,39 @@ var CBrowser = function(reqid, target_div, init_params) {
             if (init_params.on_event) {
                 init_params.on_event("connect");
             }
-        } else if (state == "connecting") {
-            // do nothing
-        }
+            rfb.resizeSession = true;
+            rfb.scaleViewport = true;
+
+
+            canvas().find('div').css('background-color', '');
+
+            updateDeferred("connected");
+        });
+        rfb.addEventListener("disconnect", function () {
+            connected = false;
+
+            canvas().hide();
+
+            var reinit = !document.hidden;
+
+            if (init_params.on_event) {
+                init_params.on_event("disconnect");
+            }
+
+            if (reinit) {
+                setup_browser();
+            }
+            updateDeferred("disconnected");
+        });
+        rfb.addEventListener("securityfailure", function () {
+            updateDeferred("securityFailure");
+        });
+        rfb.addEventListener("clipboard", function (event) {
+            onVNCCopyCut(rfb, event.text)
+        });
+
+        return deferred;
+
     }
 
     window.onresize = function () {
