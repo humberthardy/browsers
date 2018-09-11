@@ -6,3 +6,4 @@
 [submodule "browsers/browser-chromium"]
 	path = browsers/browser-chromium
 	url = https://github.com/humberthardy/browser-chromium.git
+        branch = with-nvidia-support
