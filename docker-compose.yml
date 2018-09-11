@@ -1,4 +1,4 @@
-version: '2'
+version: '3.5'
 
 services:
     shepherd:
@@ -12,8 +12,12 @@ services:
             - CLUSTER_NAME=browser_shepherd
             - NETWORK_NAME=browsers_default
             - IDLE_TIMEOUT=60
-            - AUDIO_TYPE=opus
+            - AUDIO_TYPE=opus|webrtc
             - CONTAINER_EXPIRE_SECS=1200
+            - WEBRTC_SIGNALING_SERVER=ws://signaling_server:80
+            - WEBRTC_STUN_SERVER=stun:stun.l.google.com:19302
+#            - WEBRTC_TURN_SERVER=turn:mycomputer.local:3478?transport=udp
+            - WEBRTC_TURN_SECRET=TO_BE_REPLACED_ASAP_IN_PRODUCTION
 
         depends_on:
             - redis
@@ -23,8 +27,36 @@ services:
 
         ports:
             - 9020:9020
+        networks:
+            - browsers_default
+
+    signaling_server:
+        image: webrecorder/signaling-server
+        build: ./signaling
+        ports:
+            - "8090:80"
+        networks:
+            - browsers_default
+
+#    coturn:
+#        image: webrecorder/coturn-server
+#        build: ./coturn
+#        command: bash -c "turnserver --external-ip=$${EXTERNAL_IP} --relay-ip=$${RELAY_IP} --listening-ip=$${EXTERNAL_IP} --realm=$${REALM} --use-auth-secret --static-auth-secret=$${AUTH_SECRET}"
+#
+#        network_mode: host  # due to port mapping
+#        environment:
+#        - AUTH_SECRET=TO_BE_REPLACED_ASAP_IN_PRODUCTION
+#        - REALM=mycomputer.local
+#        - EXTERNAL_IP=10.10.10.10
+#        - RELAY_IP=10.10.10.10
+
 
     redis:
-        image: redis:2.8.21
+        image: redis:3.2.4
+        networks:
+            - browsers_default
 
+networks:
+    browsers_default:
+        name: "browsers_default"
 
