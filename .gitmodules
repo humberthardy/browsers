@@ -3,3 +3,6 @@
 	url = https://github.com/humberthardy/base-browser.git
 	branch = webrtc
 
+[submodule "browsers/browser-chromium"]
+	path = browsers/browser-chromium
+	url = https://github.com/humberthardy/browser-chromium.git
