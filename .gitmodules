@@ -1,17 +1,5 @@
-[submodule "browsers/browser-firefox"]
-	path = browsers/browser-firefox
-	url = https://github.com/webrecorder/browser-firefox
-[submodule "browsers/browser-chrome"]
-	path = browsers/browser-chrome
-	url = https://github.com/webrecorder/browser-chrome
-[submodule "browsers/browser-chromium"]
-	path = browsers/browser-chromium
-	url = git@gitlab.nfb.ca:rnd/webrecorder/browser-chromium.git
 [submodule "browsers/base-browser"]
 	path = browsers/base-browser
-	url = git@gitlab.nfb.ca:rnd/webrecorder/base-browser.git
+	url = https://github.com/humberthardy/base-browser.git
 	branch = webrtc
-[submodule "browsers/browser-chromium-opengl"]
-	path = browsers/browser-chromium-opengl
-	url = git@gitlab.nfb.ca:rnd/webrecorder/browser-chromium-opengl.git
-	branch = webrtc
+
